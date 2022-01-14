@@ -17,10 +17,25 @@
 package com.example.android.guesstheword.screens.game
 
 import android.os.CountDownTimer
+import android.service.autofill.Transformation
+import android.text.format.DateUtils
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 
+private val CORRECT_BUZZ_PATTERN = longArrayOf(100, 100, 100, 100, 100, 100)
+private val PANIC_BUZZ_PATTERN = longArrayOf(0, 200)
+private val GAME_OVER_BUZZ_PATTERN = longArrayOf(0, 2000)
+private val NO_BUZZ_PATTERN = longArrayOf(0)
+
+enum class BuzzType(val pattern: LongArray) {
+    CORRECT(CORRECT_BUZZ_PATTERN),
+    GAME_OVER(GAME_OVER_BUZZ_PATTERN),
+    COUNTDOWN_PANIC(PANIC_BUZZ_PATTERN),
+    NO_BUZZ(NO_BUZZ_PATTERN)
+}
 
 /**
  * ViewModel containing all the logic needed to run the game
@@ -37,15 +52,21 @@ class GameViewModel : ViewModel() {
         private const val ONE_SECOND = 1000L
 
         // This is the total time of the game
-        private const val COUNTDOWN_TIME = 60000L
+        private const val COUNTDOWN_TIME = 10000L
 
     }
 
     private val timer: CountDownTimer
 
     private val _currentTime = MutableLiveData<Long>()
-    val currentTime: LiveData<Long>
-        get() = _currentTime
+
+    private val _buzzEvent = MutableLiveData<Boolean>()
+    val buzzEvent: LiveData<Boolean>
+        get() = _buzzEvent
+
+    val currentTimeString = Transformations.map(_currentTime) {
+        DateUtils.formatElapsedTime(it)
+    }
 
     // The current word
     private val _word = MutableLiveData<String>()
@@ -93,27 +114,27 @@ class GameViewModel : ViewModel() {
      */
     private fun resetList() {
         wordList = mutableListOf(
-                "queen",
-                "hospital",
-                "basketball",
-                "cat",
-                "change",
-                "snail",
-                "soup",
-                "calendar",
-                "sad",
-                "desk",
-                "guitar",
-                "home",
-                "railway",
-                "zebra",
-                "jelly",
-                "car",
-                "crow",
-                "trade",
-                "bag",
-                "roll",
-                "bubble"
+            "queen",
+            "hospital",
+            "basketball",
+            "cat",
+            "change",
+            "snail",
+            "soup",
+            "calendar",
+            "sad",
+            "desk",
+            "guitar",
+            "home",
+            "railway",
+            "zebra",
+            "jelly",
+            "car",
+            "crow",
+            "trade",
+            "bag",
+            "roll",
+            "bubble"
         )
         wordList.shuffle()
     }
@@ -132,11 +153,13 @@ class GameViewModel : ViewModel() {
     /** Methods for buttons presses **/
 
     fun onSkip() {
+        _buzzEvent.value = false
         _score.value = (_score.value)?.minus(1)
         nextWord()
     }
 
     fun onCorrect() {
+        _buzzEvent.value = true
         _score.value = (_score.value)?.plus(1)
         nextWord()
     }
